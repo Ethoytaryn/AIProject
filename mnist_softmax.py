@@ -36,10 +36,14 @@ def main(_):
     # Import data
     mnist = input_data.read_data_sets(FLAGS.data_dir, one_hot=True)
 
-    # Create the model
+    # Tout d'abord on prépare un tableau de 28x28, soit 784 pixels.
     x = tf.placeholder(tf.float32, [None, 784])
+    # Ensuite on fait une matrice de 784 * 10, remplie de zeros.
+    # Ce W constitue nos poids attribués à chaque pixel.
     W = tf.Variable(tf.zeros([784, 10]))
+    # Puis on fait un tableau
     b = tf.Variable(tf.zeros([10]))
+    # Ici on calcul le modèle, un simple ax+b pour chaque pixel.
     y = tf.matmul(x, W) + b
 
     # Define loss and optimizer
@@ -54,6 +58,8 @@ def main(_):
     #
     # So here we use tf.nn.softmax_cross_entropy_with_logits on the raw
     # outputs of 'y', and then average across the batch.
+
+    # Ici on lisse la courbe de résultats avec une fonction log.
     cross_entropy = tf.reduce_mean(
         tf.nn.softmax_cross_entropy_with_logits(labels=y_, logits=y))
     train_step = tf.train.GradientDescentOptimizer(0.5).minimize(cross_entropy)
