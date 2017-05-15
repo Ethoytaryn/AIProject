@@ -35,7 +35,7 @@ FLAGS = None
 def main(_):
     # Import data
     mnist = input_data.read_data_sets(FLAGS.data_dir, one_hot=True)
-
+    print(FLAGS.data_dir)
     # Tout d'abord on prépare un tableau de 28x28, soit 784 pixels.
     x = tf.placeholder(tf.float32, [None, 784])
     # Ensuite on fait une matrice de 784 * 10, remplie de zeros.
