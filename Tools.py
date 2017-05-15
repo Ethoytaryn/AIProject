@@ -9,7 +9,9 @@ def load_img(list_file_name):
 
 
 def adapter_img_to_neuronal_network(img_tensor, shape):
-    return tf.image.resize_images(tf.image.rgb_to_grayscale(img_tensor), shape)
+    img_resized = tf.image.resize_images(tf.image.rgb_to_grayscale(img_tensor), shape)
+    re = tf.reshape(img_resized, [1, shape[0]*shape[1]])
+    return tf.reshape(re, [-1, shape[0], shape[1], 1])
 
 
 def adapter_response(neuronal_network_array_response):
