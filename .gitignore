@@ -1,4 +1,7 @@
 MNIST_data/*
+!MNIST_data/.gitkeep
+save/*
+!save/.gitkeep
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

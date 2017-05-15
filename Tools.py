@@ -13,11 +13,12 @@ def adapter_img_to_neuronal_network(img_tensor, shape):
 
 
 def adapter_response(neuronal_network_array_response):
-    assert (len(neuronal_network_array_response) == 10), "La réponse du neurone doit être une Array de longeur 10"
+    assert (neuronal_network_array_response.get_shape()[1] == 10),\
+        "La réponse du neurone doit être un tenseur de longeur 10"
     response = "0123456789"
     position = neuronal_network_array_response.index(1)
     return response[position]
 
 
 def print_response(filename, response):
-    print("L'image " + filename + " représente un " + response + ".")
+    print("L'image %s représente un %d." % filename, response)

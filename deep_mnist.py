@@ -27,10 +27,14 @@ from __future__ import print_function
 
 import argparse
 import sys
+from os import listdir
 
+from os.path import isfile, join
 from tensorflow.examples.tutorials.mnist import input_data
 
 import tensorflow as tf
+
+from Tools import print_response, load_img, adapter_img_to_neuronal_network
 
 FLAGS = None
 
@@ -52,16 +56,16 @@ def deepnn(x):
     x_image = tf.reshape(x, [-1, 28, 28, 1])
 
     # First convolutional layer - maps one grayscale image to 32 feature maps.
-    W_conv1 = weight_variable([5, 5, 1, 32])
-    b_conv1 = bias_variable([32])
+    W_conv1 = weight_variable([5, 5, 1, 32], "W_conv1")
+    b_conv1 = bias_variable([32], "b_conv1")
     h_conv1 = tf.nn.relu(conv2d(x_image, W_conv1) + b_conv1)
 
     # Pooling layer - downsamples by 2X.
     h_pool1 = max_pool_2x2(h_conv1)
 
     # Second convolutional layer -- maps 32 feature maps to 64.
-    W_conv2 = weight_variable([5, 5, 32, 64])
-    b_conv2 = bias_variable([64])
+    W_conv2 = weight_variable([5, 5, 32, 64], "W_conv2")
+    b_conv2 = bias_variable([64], "b_conv2")
     h_conv2 = tf.nn.relu(conv2d(h_pool1, W_conv2) + b_conv2)
 
     # Second pooling layer.
@@ -69,8 +73,8 @@ def deepnn(x):
 
     # Fully connected layer 1 -- after 2 round of downsampling, our 28x28 image
     # is down to 7x7x64 feature maps -- maps this to 1024 features.
-    W_fc1 = weight_variable([7 * 7 * 64, 1024])
-    b_fc1 = bias_variable([1024])
+    W_fc1 = weight_variable([7 * 7 * 64, 1024], "W_fc1")
+    b_fc1 = bias_variable([1024], "b_fc1")
 
     h_pool2_flat = tf.reshape(h_pool2, [-1, 7 * 7 * 64])
     h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
@@ -81,9 +85,9 @@ def deepnn(x):
     h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob)
 
     # tableau de 1024 par 10 de chiffre random
-    W_fc2 = weight_variable([1024, 10])
+    W_fc2 = weight_variable([1024, 10], "W_fc2")
     # tableau de constante 0.1
-    b_fc2 = bias_variable([10])
+    b_fc2 = bias_variable([10], "b_fc2")
 
     y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
     return y_conv, keep_prob
@@ -100,15 +104,15 @@ def max_pool_2x2(x):
                           strides=[1, 2, 2, 1], padding='SAME')
 
 
-def weight_variable(shape):
+def weight_variable(shape, name):
     """weight_variable generates a weight variable of a given shape."""
-    initial = tf.truncated_normal(shape, stddev=0.1)
+    initial = tf.truncated_normal(shape, stddev=0.1, name=name)
     return tf.Variable(initial)
 
 
-def bias_variable(shape):
+def bias_variable(shape, name):
     """bias_variable generates a bias variable of a given shape."""
-    initial = tf.constant(0.1, shape=shape)
+    initial = tf.constant(0.1, shape=shape, name=name)
     return tf.Variable(initial)
 
 
@@ -116,10 +120,8 @@ def main(_):
     ###############################
     # Premiere partie : Preparation du modele
     ###############################
-    tf.image.decode_jpeg("test\IMG_20170222_131852.jpg", channels=1);
     # Import des données pour l'apprentissage. Les fichiers sont en format IDX
     mnist = input_data.read_data_sets(FLAGS.data_dir, one_hot=True)
-    print(""+mnist.count());
     # Creation d'un tableau de 784 pixels
     x = tf.placeholder(tf.float32, [None, 784])
 
@@ -140,23 +142,38 @@ def main(_):
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
     with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
-        for i in range(1000):
-            batch = mnist.train.next_batch(50)
-            if i % 100 == 0:
-                train_accuracy = accuracy.eval(feed_dict={
-                    x: batch[0], y_: batch[1], keep_prob: 1.0})
-                print('step %d, training accuracy %g' % (i, train_accuracy))
-            train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
-
-        print('test accuracy %g' % accuracy.eval(feed_dict={
-            x: mnist.test.images, y_: mnist.test.labels, keep_prob: 1.0}))
+        saver = tf.train.Saver()
+        saves_path = "./save"
+        save = [f for f in listdir(saves_path) if isfile(join(saves_path, f))]
+        if len(save) > 1:
+            input_path = "./input"
+            images = [f for f in listdir(input_path) if isfile(join(input_path, f))]
+            loaded = adapter_img_to_neuronal_network(load_img(images), [28, 28])
+            y, ignored = deepnn(loaded)
+            saver.restore(sess, "./save/data.ckpt")
+            sess.run(tf.global_variables_initializer())
+            print("Starting image processing")
+            result = sess.run(tf.argmax(y, 1))
+            print(result)
+        else:
+            sess.run(tf.global_variables_initializer())
+            for i in range(100):
+                batch = mnist.train.next_batch(50)
+                if i % 50 == 0:
+                    train_accuracy = accuracy.eval(feed_dict={
+                        x: batch[0], y_: batch[1], keep_prob: 1.0})
+                    print('step %d, training accuracy %g' % (i, train_accuracy))
+                train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
+            saved_path = saver.save(sess, "./save/data.ckpt")
+            print("Saved model in file %s" % saved_path)
+            print('test accuracy %g' % accuracy.eval(feed_dict={
+                x: mnist.test.images, y_: mnist.test.labels, keep_prob: 1.0}))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_dir', type=str,
-                        default='/test',
-                        help='Directory for storing input data')
+                        default='./MNIST_data',
+                        help='Directory for storing test input data')
     FLAGS, unparsed = parser.parse_known_args()
     tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
