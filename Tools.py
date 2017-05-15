@@ -8,6 +8,16 @@ def load_img(list_file_name):
     return tf.image.decode_jpeg(value)
 
 
-def transform_img_to_neuronal_network(image_tensor):
-    return tf.image.resize_images(tf.image.rgb_to_grayscale(image_tensor), [28, 28])
+def adapter_img_to_neuronal_network(img_tensor, shape):
+    return tf.image.resize_images(tf.image.rgb_to_grayscale(img_tensor), shape)
 
+
+def adapter_response(neuronal_network_array_response):
+    assert (len(neuronal_network_array_response) == 10), "La réponse du neurone doit être une Array de longeur 10"
+    response = "0123456789"
+    position = neuronal_network_array_response.index(1)
+    return response[position]
+
+
+def print_response(filename, response):
+    print("L'image " + filename + " représente un " + response + ".")
