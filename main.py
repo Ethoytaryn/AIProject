@@ -34,7 +34,7 @@ from tensorflow.examples.tutorials.mnist import input_data
 
 import tensorflow as tf
 
-from Tools import print_response, load_img, adapter_img_to_neuronal_network
+from Tools import print_response, load_array_img
 
 FLAGS = None
 
@@ -50,9 +50,7 @@ def deepnn(x):
       digits 0-9). keep_prob is a scalar placeholder for the probability of
       dropout.
     """
-    # Reshape to use within a convolutional neural net.
-    # Last dimension is for "features" - there is only one here, since images are
-    # grayscale -- it would be 3 for an RGB image, 4 for RGBA, etc.
+    # reshape 2D array [n,784] in 4D [n * 28 *28 *1]
     x_image = tf.reshape(x, [-1, 28, 28, 1])
 
     # First convolutional layer - maps one grayscale image to 32 feature maps.
@@ -84,12 +82,13 @@ def deepnn(x):
     keep_prob = tf.placeholder(tf.float32)
     h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob)
 
-    # tableau de 1024 par 10 de chiffre random
+    # random weight array
     W_fc2 = weight_variable([1024, 10], "W_fc2")
-    # tableau de constante 0.1
+    # bais arry
     b_fc2 = bias_variable([10], "b_fc2")
 
     y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
+
     return y_conv, keep_prob
 
 
@@ -146,23 +145,22 @@ def main(_):
         saves_path = "./save"
         save = [f for f in listdir(saves_path) if isfile(join(saves_path, f))]
         if len(save) > 1:
-            input_path = "./input"
-            images = [f for f in listdir(input_path) if isfile(join(input_path, f))]
-            loaded = adapter_img_to_neuronal_network(load_img(images), [28, 28])
-            y, ignored = deepnn(loaded)
+            images_filename = [f for f in listdir(FLAGS.input_dir) if isfile(join(FLAGS.input_dir, f))]
+            images_array = load_array_img(images_filename, FLAGS.input_dir)
+            print("Save restauration")
             saver.restore(sess, "./save/data.ckpt")
+            print("Save recovery")
             sess.run(tf.global_variables_initializer())
+            print("Session lauched")
+            result = sess.run(y_conv, feed_dict={x: images_array, keep_prob: 1.0})
             print("Starting image processing")
-            result = sess.run(tf.argmax(y, 1))
-            print(result)
+            result_process = sess.run(tf.argmax(result, 1))
+            print("Image prcessing ended")
+            print_response(images_filename, result_process)
         else:
             sess.run(tf.global_variables_initializer())
-            for i in range(100):
+            for i in range(1):
                 batch = mnist.train.next_batch(50)
-                if i % 50 == 0:
-                    train_accuracy = accuracy.eval(feed_dict={
-                        x: batch[0], y_: batch[1], keep_prob: 1.0})
-                    print('step %d, training accuracy %g' % (i, train_accuracy))
                 train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
             saved_path = saver.save(sess, "./save/data.ckpt")
             print("Saved model in file %s" % saved_path)
@@ -175,5 +173,8 @@ if __name__ == '__main__':
     parser.add_argument('--data_dir', type=str,
                         default='./MNIST_data',
                         help='Directory for storing test input data')
+    parser.add_argument('--input_dir', type=str,
+                        default='./input',
+                        help='Directory for storing input data')
     FLAGS, unparsed = parser.parse_known_args()
     tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)

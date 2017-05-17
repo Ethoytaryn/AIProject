@@ -1,26 +1,31 @@
-import tensorflow as tf
+from PIL import Image
+import numpy as np
 
 
-def load_img(list_file_name):
-    filename_queue = tf.train.string_input_producer(list_file_name)
-    reader = tf.WholeFileReader()
-    key, value = reader.read(filename_queue)
-    return tf.image.decode_jpeg(value)
+def load_img(file_name):
+    return Image.open(file_name, mode='r').convert('L')
 
 
-def adapter_img_to_neuronal_network(img_tensor, shape):
-    img_resized = tf.image.resize_images(tf.image.rgb_to_grayscale(img_tensor), shape)
-    re = tf.reshape(img_resized, [1, shape[0]*shape[1]])
-    return tf.reshape(re, [-1, shape[0], shape[1], 1])
+def resized(image, shape):
+    return image.resize(shape, Image.ANTIALIAS)
 
 
-def adapter_response(neuronal_network_array_response):
-    assert (neuronal_network_array_response.get_shape()[1] == 10),\
-        "La réponse du neurone doit être un tenseur de longeur 10"
-    response = "0123456789"
-    position = neuronal_network_array_response.index(1)
-    return response[position]
+def pil2array(img, pixel_count):
+    return np.array(img.getdata(),
+                    np.float32).reshape(pixel_count)
 
 
-def print_response(filename, response):
-    print("L'image %s représente un %d." % filename, response)
+def load_array_img(images_filenames, directory_name):
+    array_imgs = []
+    for filename in images_filenames:
+        grey_img = load_img(directory_name+'/'+filename)
+        grey_img_resized = resized(grey_img,[28, 28])
+        array_img = pil2array(grey_img_resized, 784)
+        array_imgs.append(array_img)
+    return array_imgs
+
+
+def print_response(filenames, response):
+    for filename in filenames:
+        index = filenames.index(filename)
+        print("L'image " + filename + " représente un " + str(response[index]) + ".")
