@@ -1,6 +1,7 @@
 MNIST_data/*
 !MNIST_data/.gitkeep
 save/*
+monitoring/*
 !save/.gitkeep
 
 # Byte-compiled / optimized / DLL files

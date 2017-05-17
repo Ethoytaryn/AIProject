@@ -140,6 +140,15 @@ def main(_):
     # précision
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
+    with tf.name_scope('accuracy_log'):
+        accuracy_log = tf.Variable(0., name="accuracy_log")
+        tf.summary.scalar('accuracy_log', accuracy_log)
+
+    update = tf.assign(accuracy_log, accuracy)
+
+    # enregistrement
+    merged = tf.summary.merge_all()
+
     with tf.Session() as sess:
         saver = tf.train.Saver()
         saves_path = "./save"
@@ -159,13 +168,21 @@ def main(_):
             print_response(images_filename, result_process)
         else:
             sess.run(tf.global_variables_initializer())
-            for i in range(1):
+            summary_writer = tf.summary.FileWriter("./monitoring/stat", sess.graph)
+            coord = tf.train.Coordinator()
+            threads = tf.train.start_queue_runners(coord=coord)
+            for i in range(20001):
                 batch = mnist.train.next_batch(50)
-                train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
+                sess.run(train_step, feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
+                if i % 100 == 0 and i > 0:
+                    summary, acc = sess.run([merged,update],
+                                        feed_dict={x: mnist.test.images, y_: mnist.test.labels, keep_prob: 1.0})
+                    print("occurence : %d, précision : %g" % (i, acc))
+                    summary_writer.add_summary(summary, i)
             saved_path = saver.save(sess, "./save/data.ckpt")
             print("Saved model in file %s" % saved_path)
-            print('test accuracy %g' % accuracy.eval(feed_dict={
-                x: mnist.test.images, y_: mnist.test.labels, keep_prob: 1.0}))
+            coord.request_stop()
+            coord.join(threads)
 
 
 if __name__ == '__main__':
