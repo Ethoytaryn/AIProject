@@ -156,15 +156,11 @@ def main(_):
         if len(save) > 1:
             images_filename = [f for f in listdir(FLAGS.input_dir) if isfile(join(FLAGS.input_dir, f))]
             images_array = load_array_img(images_filename, FLAGS.input_dir)
-            print("Save restauration")
             saver.restore(sess, "./save/data.ckpt")
-            print("Save recovery")
-            sess.run(tf.global_variables_initializer())
-            print("Session lauched")
-            result = sess.run(y_conv, feed_dict={x: images_array, keep_prob: 1.0})
-            print("Starting image processing")
+            accuracy = accuracy.eval({x: mnist.test.images, y_: mnist.test.labels, keep_prob: 1.0})
+            print("Accuracy with loaded model on MNIST data : %g" % accuracy)
+            result = sess.run(y_conv, feed_dict={x: images_array, keep_prob: 0.5})
             result_process = sess.run(tf.argmax(result, 1))
-            print("Image prcessing ended")
             print_response(images_filename, result_process)
         else:
             sess.run(tf.global_variables_initializer())
@@ -175,8 +171,8 @@ def main(_):
                 batch = mnist.train.next_batch(50)
                 sess.run(train_step, feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
                 if i % 100 == 0 and i > 0:
-                    summary, acc = sess.run([merged,update],
-                                        feed_dict={x: mnist.test.images, y_: mnist.test.labels, keep_prob: 1.0})
+                    summary, acc = sess.run([merged, update],
+                                            feed_dict={x: mnist.test.images, y_: mnist.test.labels, keep_prob: 1.0})
                     print("occurence : %d, précision : %g" % (i, acc))
                     summary_writer.add_summary(summary, i)
             saved_path = saver.save(sess, "./save/data.ckpt")
